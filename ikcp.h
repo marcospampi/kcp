@@ -373,12 +373,20 @@ extern "C" {
 // interface
 //---------------------------------------------------------------------
 
+// initializes a kcp control object, 'conv' must be equal in both endpoints
+// of the same connection. 'user' will be passed to the output callback.
+// output callback can be set up like this: 'kcp->output = my_udp_output'
+int ikcp_init(ikcpcb* kcp, IUINT32 conv, void *user);
+
 // create a new kcp control object, 'conv' must be equal in both endpoints
 // of the same connection. 'user' will be passed to the output callback.
 // output callback can be set up like this: 'kcp->output = my_udp_output'
 ikcpcb* ikcp_create(IUINT32 conv, void *user);
 
-// release kcp control object
+// shuts down a kcp control object without freeing it
+void ikcp_shutdown(ikcpcb *kcp);
+
+// releases kcp control object
 void ikcp_release(ikcpcb *kcp);
 
 // set output callback, which will be invoked by kcp

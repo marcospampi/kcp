@@ -227,14 +227,25 @@ void ikcp_qprint(const char *name, const struct IQUEUEHEAD *head)
 #endif
 }
 
-
 //---------------------------------------------------------------------
 // create a new kcpcb
 //---------------------------------------------------------------------
-ikcpcb* ikcp_create(IUINT32 conv, void *user)
-{
+ikcpcb* ikcp_create(IUINT32 conv, void *user) {
 	ikcpcb *kcp = (ikcpcb*)ikcp_malloc(sizeof(struct IKCPCB));
 	if (kcp == NULL) return NULL;
+	if ( ikcp_init(kcp, conv, user) ) {
+		ikcp_free(kcp);
+		return NULL;
+	}
+	return kcp;
+
+}
+
+//---------------------------------------------------------------------
+// initializes a kcp control object
+//---------------------------------------------------------------------
+int ikcp_init(ikcpcb* kcp, IUINT32 conv, void *user)
+{
 	kcp->conv = conv;
 	kcp->user = user;
 	kcp->snd_una = 0;
@@ -256,8 +267,7 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user)
 
 	kcp->buffer = (char*)ikcp_malloc((kcp->mtu + IKCP_OVERHEAD) * 3);
 	if (kcp->buffer == NULL) {
-		ikcp_free(kcp);
-		return NULL;
+		return -1;
 	}
 
 	iqueue_init(&kcp->snd_queue);
@@ -294,14 +304,20 @@ ikcpcb* ikcp_create(IUINT32 conv, void *user)
 	kcp->congest = NULL;
 	kcp->writelog = NULL;
 
-	return kcp;
+	return 0;
 }
-
-
 //---------------------------------------------------------------------
-// release a kcpcb
+// release a kcpcb instance
 //---------------------------------------------------------------------
-void ikcp_release(ikcpcb *kcp)
+void ikcp_release(ikcpcb *kcp) {
+	ikcp_shutdown(kcp);
+	ikcp_free(kcp);
+
+}
+//---------------------------------------------------------------------
+// shuts down a kcp control object
+//---------------------------------------------------------------------
+void ikcp_shutdown(ikcpcb *kcp)
 {
 	IKCPSEG *seg;
 	assert(kcp);
@@ -343,7 +359,6 @@ void ikcp_release(ikcpcb *kcp)
 		kcp->ackcount = 0;
 		kcp->buffer = NULL;
 		kcp->acklist = NULL;
-		ikcp_free(kcp);
 	}
 }
 
